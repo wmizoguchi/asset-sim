@@ -32,3 +32,14 @@ npm run build    # 本番ビルド
 - `main` ブランチは保護されており、直接 push はできない
 - 変更は feature ブランチ → Pull Request → レビュー → マージ の流れで行う
 - CI（GitHub Actions）で lint / test / build が通ることを確認してからマージする
+
+## レビュー環境（GitHub Pages）
+
+`main` に push されると GitHub Actions（`.github/workflows/deploy.yml`）が自動的に
+ビルドし、`gh-pages` ブランチへデプロイする。LAN 外からでも以下の URL でレビュー環境に
+アクセスできる。
+
+- https://wmizoguchi.github.io/asset-sim/
+
+デプロイには数分かかる場合がある。PR 段階ではデプロイされず、`main` へのマージ後に
+反映される点に注意。
