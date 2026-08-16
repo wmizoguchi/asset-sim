@@ -96,6 +96,50 @@ function NumberField({
   step?: number;
   suffix?: string;
 }) {
+  // 表示用: カンマ区切りの文字列としてユーザーの入力中テキストを保持する。
+  // 数値(value)をそのまま毎回フォーマットし直すと、入力中に古い値の残骸が
+  // 挿入されたりカーソル位置がずれたりするため、フォーカス中は素の入力文字列を
+  // 保持し、blur時にのみ正規化する。
+  const isIntegerField = step === undefined;
+  const formatDisplay = (v: number) =>
+    Number.isFinite(v) ? v.toLocaleString("ja-JP") : "";
+
+  const [text, setText] = useState(formatDisplay(value));
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    if (!isFocused) {
+      setText(formatDisplay(value));
+    }
+    // isFocused は依存配列に含めない: フォーカス中は外部からのvalue変化で
+    // 表示を上書きしない (ユーザーが今まさに打っている文字列を壊さないため)。
+  }, [value]);
+
+  function handleChange(raw: string) {
+    // 数字・小数点・先頭マイナスのみ残す (カンマや全角文字は除去)。
+    const cleaned = raw.replace(/[^\d.-]/g, "");
+    setText(cleaned);
+    if (cleaned === "" || cleaned === "-") {
+      onChange(0);
+      return;
+    }
+    const parsed = isIntegerField ? parseInt(cleaned, 10) : parseFloat(cleaned);
+    if (!Number.isNaN(parsed)) {
+      onChange(parsed);
+    }
+  }
+
+  function handleBlur() {
+    setIsFocused(false);
+    let clamped = value;
+    if (min !== undefined && clamped < min) clamped = min;
+    if (max !== undefined && clamped > max) clamped = max;
+    if (clamped !== value) {
+      onChange(clamped);
+    }
+    setText(formatDisplay(clamped));
+  }
+
   return (
     <label className="block">
       <span className="mb-1 block text-sm font-medium text-gray-600 dark:text-gray-300">
@@ -103,13 +147,13 @@ function NumberField({
       </span>
       <div className="relative">
         <input
-          type="number"
-          value={value}
-          min={min}
-          max={max}
-          step={step}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 tabular-nums text-gray-900 outline-none transition focus:border-accent-500 focus:bg-white focus:ring-2 focus:ring-accent-100 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:focus:ring-accent-700/30"
+          type="text"
+          inputMode={isIntegerField ? "numeric" : "decimal"}
+          value={text}
+          onFocus={() => setIsFocused(true)}
+          onChange={(e) => handleChange(e.target.value)}
+          onBlur={handleBlur}
+          className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 tabular-nums text-gray-900 outline-none transition focus:border-accent-500 focus:bg-white focus:ring-2 focus:ring-accent-100 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:focus:border-accent-500 dark:focus:bg-gray-900 dark:focus:ring-accent-700/30"
         />
         {suffix && (
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
@@ -139,7 +183,7 @@ function TextField({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-900 outline-none transition focus:border-accent-500 focus:bg-white focus:ring-2 focus:ring-accent-100 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:focus:ring-accent-700/30"
+        className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-900 outline-none transition focus:border-accent-500 focus:bg-white focus:ring-2 focus:ring-accent-100 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:focus:border-accent-500 dark:focus:bg-gray-900 dark:focus:ring-accent-700/30"
       />
     </label>
   );
